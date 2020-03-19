@@ -24,5 +24,6 @@ export class AppComponent {
     } else {
       console.log('Mode web');
     }
+    console.log('📢📢📢📢📢', navigator.plugins);
   }
 }

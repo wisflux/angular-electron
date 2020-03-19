@@ -4,10 +4,44 @@ import * as url from 'url';
 
 let win: BrowserWindow = null;
 const args = process.argv.slice(1),
-    serve = args.some(val => val === '--serve');
+  isDevMode = args.some(val => val === '--serve'),
+  isLocalMode = args.some(val => val === '.');
+
+console.log('args', args);
+
+console.log(isDevMode, isLocalMode);
+let pluginName;
+let pluginVersion;
+switch (process.platform) {
+  case 'win32':
+    pluginName = 'pepflashplugin.dll';
+    pluginVersion = '32.0.0.223';
+    break;
+  case 'darwin':
+    pluginName = 'PepperFlashPlayer.plugin';
+    pluginVersion = '32.0.0.255';
+    break;
+  case 'linux':
+    pluginName = 'libpepflashplayer.so';
+    pluginVersion = '32.0.0.223';
+    break;
+}
+
+isDevMode || isLocalMode
+  ? app.commandLine.appendSwitch(
+      'ppapi-flash-path',
+      path.join(__dirname, `plugins/${pluginName}`)
+    )
+  : app.commandLine.appendSwitch(
+      'ppapi-flash-path',
+      path.join(__dirname, `../plugins/${pluginName}`)
+    );
+
+if (pluginVersion) {
+  app.commandLine.appendSwitch('ppapi-flash-version', pluginVersion);
+}
 
 function createWindow(): BrowserWindow {
-
   const electronScreen = screen;
   const size = electronScreen.getPrimaryDisplay().workAreaSize;
 
@@ -19,24 +53,27 @@ function createWindow(): BrowserWindow {
     height: size.height,
     webPreferences: {
       nodeIntegration: true,
-      allowRunningInsecureContent: (serve) ? true : false,
-    },
+      allowRunningInsecureContent: isDevMode ? true : false,
+      plugins: true
+    }
   });
 
-  if (serve) {
+  if (isDevMode) {
     require('electron-reload')(__dirname, {
       electron: require(`${__dirname}/node_modules/electron`)
     });
-    win.loadURL('http://localhost:4200');
+    win.loadURL('http://localhost:4200/assets/flash-birds.swf');
   } else {
-    win.loadURL(url.format({
-      pathname: path.join(__dirname, 'dist/index.html'),
-      protocol: 'file:',
-      slashes: true
-    }));
+    win.loadURL(
+      url.format({
+        pathname: path.join(__dirname, 'dist/assets/flash-birds.swf'),
+        protocol: 'file:',
+        slashes: true
+      })
+    );
   }
 
-  if (serve) {
+  if (isDevMode) {
     win.webContents.openDevTools();
   }
 
@@ -52,7 +89,6 @@ function createWindow(): BrowserWindow {
 }
 
 try {
-
   // This method will be called when Electron has finished
   // initialization and is ready to create browser windows.
   // Some APIs can only be used after this event occurs.
@@ -74,7 +110,6 @@ try {
       createWindow();
     }
   });
-
 } catch (e) {
   // Catch Error
   // throw e;
